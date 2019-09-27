@@ -1,5 +1,11 @@
-my $file='annotated_trace';
-my $binfile='spin_runtime';
+
+if ($#ARGV != 1) {
+    print "Usage: $0 <trace_file> <bin_file>\n";
+    exit;
+}
+
+my $file="$ARGV[0]";
+my $binfile="$ARGV[1]";
 
 open my $info, $file or die "Could not open $file: $!";
 
