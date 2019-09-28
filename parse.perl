@@ -83,6 +83,7 @@ sub convert_file {
     #in case we didn't reach the flushing threshold
     $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline);
 
+    close $info;
     return $last_time;
 }
 
@@ -115,4 +116,4 @@ foreach my $file (@ARGV) {
 
 print "{}]}\n";
 
-close $info;
+
