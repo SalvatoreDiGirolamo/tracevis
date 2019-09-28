@@ -87,7 +87,7 @@ sub convert_file {
 }
 
 if ($#ARGV < 2) {
-    print "Usage: $0 [-i] <trace_file> <bin_file>\n";
+    print "Usage: $0 [-i] <bin_file> <trace_file_1> .. <trace_file_n>\n";
     exit;
 }
 
