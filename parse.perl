@@ -19,8 +19,8 @@ sub flush_buffer {
     $a2l_first_last_lines[0] = "";
     $a2l_first_last_lines[1] = "";  
 
-    my $a2l_line_index = 0;
-    if (!$inline) { $a2l_line_index = 1;}
+    my $a2l_line_index = 1;
+    if (!$inline) { $a2l_line_index = 0;}
 
     for (split /\n/, $funcnames) {
         my $a2l_line = $_;
