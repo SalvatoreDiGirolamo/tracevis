@@ -3,6 +3,7 @@ sub flush_buffer {
     my $pcs = $_[1];
     my $binfile = $_[2];
     my $last_time = $_[3];
+    my $inline = $_[4];
     #print $buffer;
     my $funcnames = `addr2line -e $binfile -f -a -i $pcs`;
 
@@ -13,8 +14,12 @@ sub flush_buffer {
     #remove first line
     $funcnames =~ s/^[^\n]*\n//s;
 
-    my $last_a2l_line = ""; #this is the inlining function
-    my $first_a2l_line = ""; #this is the inlined function
+    my @a2l_first_last_lines = {};
+    $a2l_first_last_lines[0] = "";
+    $a2l_first_last_lines[1] = "";  
+
+    my $a2l_line_index = 0;
+    if (!$inline) { $a2l_line_index = 1;}
 
     for (split /\n/, $funcnames) {
         my $a2l_line = $_;
@@ -23,38 +28,45 @@ sub flush_buffer {
             #print "ADDR: $1 $2\n";
 
             my ($time, $cycles, $pc, $instr, $args) = $buffer =~ /\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  )).*/;
-            #print "TRACE ADDR: $pc\n";
-            #print "$first_a2l_line\n";
-            #print "$last_a2l_line\n\n";
     
-            my $funcname = $last_a2l_line;
+            my $funcname = $a2l_first_last_lines[$a2l_line_index];
             my $duration = $cycles - $last_time;
             
             print "{\"name\": \"$instr\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $last_time, \"dur\": $duration, \"pid\": \"cluster0_core0\", \"tid\": \"$funcname\", \"args\":{}},\n";
 
             #remove current line from the buffer
             $buffer =~ s/^[^\n]*\n//s;
-
-            $last_a2l_line="";
-            $first_a2l_line="";
+        
+            $a2l_first_last_lines[0] = "";
+            $a2l_first_last_lines[1] = "";
             $last_time = $cycles;
 
         } elsif ($a2l_line =~ /^[^\/].*/) {
-            if ($first_a2l_line eq "") { $first_a2l_line = $a2l_line; }
-            $last_a2l_line = $a2l_line;
+            if ($a2l_first_last_lines[0] eq "") { $a2l_first_last_lines[0] = $a2l_line; }
+            $a2l_first_last_lines[1] = $a2l_line;
         }   
     }
     #print "\n\nend flush\n\n";
     return $last_time;
 }
 
-if ($#ARGV != 1) {
-    print "Usage: $0 <trace_file> <bin_file>\n";
+if ($#ARGV != 1 && $#ARGV != 2) {
+    print "Usage: $0 [-i] <trace_file> <bin_file>\n";
     exit;
 }
 
-my $file="$ARGV[0]";
-my $binfile="$ARGV[1]";
+my $arg_index = 0;
+
+my $inline = 0;
+if ($ARGV[$arg_index] eq "-i") {
+    $inline = 1;
+    $arg_index++;
+}
+my $file=$ARGV[$arg_index++];
+my $binfile=$ARGV[$arg_index++];
+
+#print "$arg_index $inline $file $binfile\n";
+
 
 open my $info, $file or die "Could not open $file: $!";
 
@@ -65,6 +77,7 @@ print "{\"traceEvents\": [";
 my $buffer = "";
 my $pcs="";
 my $count = 0;
+
 while(my $line = <$info>) {
 
     if  ($line =~ /\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  )).*/) {
@@ -76,7 +89,7 @@ while(my $line = <$info>) {
         if ($count==1000){
             #print "flushing buffer";
             #print "$buffer";
-            $last_time = flush_buffer($buffer, $pcs, $binfile, $last_time);
+            $last_time = flush_buffer($buffer, $pcs, $binfile, $last_time, $inline);
             $buffer="";
             $pcs="";
             $count=0;
@@ -85,7 +98,7 @@ while(my $line = <$info>) {
 }
 
 #in case we didn't reach the flushing threshold
-$last_time = flush_buffer($buffer, $pcs, $binfile, $last_time);
+$last_time = flush_buffer($buffer, $pcs, $binfile, $last_time, $inline);
 
 print "{\"name\": \"end\", \"cat\": \"end\", \"ph\": \"X\", \"ts\": $last_time, \"dur\": 1, \"pid\": \"cluster0_core0\", \"tid\": \"end\", \"args\":{}}\n";
 print "]}";
