@@ -87,7 +87,7 @@ sub convert_file {
     return $last_time;
 }
 
-if ($#ARGV < 2) {
+if ($#ARGV < 1) {
     print "Usage: $0 [-i] <bin_file> <trace_file_1> .. <trace_file_n>\n";
     exit;
 }
