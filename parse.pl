@@ -28,7 +28,7 @@ sub flush_buffer {
         if ($a2l_line =~ /^(0x[0-9a-f]+)(.*)/ and $buffer =~ /.*\n.*\n.*/) {
             #print "ADDR: $1 $2\n";
 
-            my ($time, $cycles, $pc, $instr, $args, $next_cycles) = $buffer =~ /^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  )).*\n\s+[0-9]+\s+([0-9]+).*/;
+            my ($time, $cycles, $pc, $instr, $args, $rest, $next_cycles) = $buffer =~ /^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s+[0-9]+\s+([0-9]+).*/;
     
             #remove current line from the buffer
             $buffer =~ s/^[^\n]*\n//s;
@@ -38,7 +38,7 @@ sub flush_buffer {
             my $duration = ($next_cycles - $cycles);
             my $start_time = $cycles;
             
-            print "{\"name\": \"$instr\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{}},\n";
+            print "{\"name\": \"$instr\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{\"pc\": \"$pc\", \"instr\": \"$instr $args $rest\", \"time\": \"$cycles\"}},\n";
 
         
             $a2l_first_last_lines[0] = "";
