@@ -5,6 +5,11 @@ sub flush_buffer {
     my $binfile = $_[3];
     my $last_time = $_[4];
     my $inline = $_[5];
+
+    my $linenum = $buffer =~ tr/\n//;
+
+    if ($linenum < 2) { return; }
+
     #print $buffer;
     my $funcnames = `addr2line -e $binfile -f -a -i $pcs`;
 
@@ -73,9 +78,10 @@ sub convert_file {
             $count++;
 
             if ($count==1000){
-                #print "flushing buffer";
+                #print "flushing buffer\n";
                 #print "$buffer";
                 $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline);
+                #print "completed\n";
                 $buffer="$line";
                 $pcs="";
                 $count=0;
@@ -84,8 +90,9 @@ sub convert_file {
     }
 
     #in case we didn't reach the flushing threshold
+    #print "flushing buffer (last) Buffer:\n$buffer\n";
     $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline);
-
+    #print "completed\n";
     close $info;
     return $last_time;
 }
