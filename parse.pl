@@ -23,6 +23,11 @@ sub flush_buffer {
     my @a2l_first_last_lines = {};
     $a2l_first_last_lines[0] = "";
     $a2l_first_last_lines[1] = "";  
+    
+    my @a2i_first_last_lines = {};
+    $a2i_first_last_lines[0] = "";
+    $a2i_first_last_lines[1] = "";  
+
 
     my $a2l_line_index = 1;
     if (!$inline) { $a2l_line_index = 0;}
@@ -40,20 +45,27 @@ sub flush_buffer {
 
             #print "$time - $cycles - $pc - $instr - $args\n";
             my $funcname = $a2l_first_last_lines[$a2l_line_index];
+            my $coords = $a2i_first_last_lines[$a2l_line_index];
             my $duration = ($next_cycles - $cycles);
             my $start_time = $cycles;
             
-            print "{\"name\": \"$instr\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{\"pc\": \"$pc\", \"instr\": \"$instr $args $rest\", \"time\": \"$cycles\"}},\n";
+            print "{\"name\": \"$instr\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{\"pc\": \"$pc\", \"instr\": \"$instr $args $rest\", \"time\": \"$cycles\", \"Origin\": \"$coords\"}},\n";
 
         
             $a2l_first_last_lines[0] = "";
             $a2l_first_last_lines[1] = "";
+            $a2i_first_last_lines[0] = "";
+            $a2i_first_last_lines[1] = "";
             $last_time = $cycles;
 
         } elsif ($a2l_line =~ /^[^\/].*/) {
             if ($a2l_first_last_lines[0] eq "") { $a2l_first_last_lines[0] = $a2l_line; }
             $a2l_first_last_lines[1] = $a2l_line;
-        }   
+        } else {
+            if ($a2i_first_last_lines[0] eq "") { $a2i_first_last_lines[0] = $a2l_line; }
+            $a2i_first_last_lines[1] = $a2l_line;
+        }
+        
     }
     #print "\n\nend flush\n\n";
     return $last_time;
@@ -83,7 +95,7 @@ sub convert_file {
                 $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline);
                 #print "completed\n";
                 $buffer="$line";
-                $pcs="";
+                $pcs="$3";
                 $count=0;
             }
         }
