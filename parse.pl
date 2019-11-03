@@ -5,6 +5,7 @@ sub flush_buffer {
     my $binfile = $_[3];
     my $last_time = $_[4];
     my $inline = $_[5];
+    my $use_pc_as_label = $_[6];
 
     my $linenum = $buffer =~ tr/\n//;
 
@@ -49,7 +50,10 @@ sub flush_buffer {
             my $duration = ($next_cycles - $cycles);
             my $start_time = $cycles;
             
-            print "{\"name\": \"$instr\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{\"pc\": \"$pc\", \"instr\": \"$instr $args $rest\", \"time\": \"$cycles\", \"Origin\": \"$coords\"}},\n";
+            my $label = $instr;
+            if ($use_pc_as_label) { $label = "$pc - $instr"; }
+
+            print "{\"name\": \"$label\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{\"pc\": \"$pc\", \"instr\": \"$instr $args $rest\", \"time\": \"$cycles\", \"Origin\": \"$coords\"}},\n";
 
         
             $a2l_first_last_lines[0] = "";
@@ -75,6 +79,7 @@ sub convert_file {
     my $file = $_[0];
     my $binfile = $_[1];
     my $inline = $_[2];
+    my $use_pc_as_label = $_[3];
 
     open my $info, $file or die "Could not open $file: $!";
     my $last_time = 0;
@@ -92,7 +97,7 @@ sub convert_file {
             if ($count==1000){
                 #print "flushing buffer\n";
                 #print "$buffer";
-                $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline);
+                $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label);
                 #print "completed\n";
                 $buffer="$line";
                 $pcs="$3";
@@ -103,7 +108,7 @@ sub convert_file {
 
     #in case we didn't reach the flushing threshold
     #print "flushing buffer (last) Buffer:\n$buffer\n";
-    $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline);
+    $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label);
     #print "completed\n";
     close $info;
     return $last_time;
@@ -117,11 +122,19 @@ if ($#ARGV < 1) {
 my $arg_index = 0;
 
 my $inline = 0;
+my $use_pc_as_label = 0;
 if ($ARGV[$arg_index] eq "-i") {
     $inline = 1;
     $arg_index++;
     shift;
 }
+
+if ($ARGV[$arg_index] eq "-p") {
+    $use_pc_as_label=1;
+    $arg_index++;
+    shift;
+}
+
 my $binfile=shift; #$ARGV[$arg_index++];
 
 #print "$arg_index $inline $binfile\n";
@@ -130,7 +143,7 @@ print "{\"traceEvents\": [\n";
 
 my $last_time=0;
 foreach my $file (@ARGV) {
-    $last_time = convert_file($file, $binfile, $inline);
+    $last_time = convert_file($file, $binfile, $inline, $use_pc_as_label);
 }
 
 
