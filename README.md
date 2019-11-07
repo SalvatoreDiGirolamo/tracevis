@@ -2,6 +2,7 @@
 
 **Usage:**
 ```perl ./parse.pl [-i] [-p] <binary> <trace file 1> ... <trace file n>```
+The trace files are expected to be the ones produced by RI5CY cores.
 
 **Output:** JSON that can be loaded into chrome tracing (about://tracing from chrome or chromium)
 
