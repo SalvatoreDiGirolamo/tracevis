@@ -1,5 +1,7 @@
 # tracevis
 
+**Requires:**  perl >= v5.26; addr2line >= 2.30. Could work with lower versions too, but it is not tested.
+
 **Usage:**
 ```perl ./parse.pl [-i] [-p] <binary> <trace file 1> ... <trace file n>```
 
