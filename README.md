@@ -20,7 +20,7 @@ The example/ folder contains:
  - traces/trace*.log: the per-core RI5CY traces produced by the RTL simulation of the above binary file;
  - chrome.json: the output file produced by the script when the above binary and traces are given as input.
 
-The chrome.json can be produces by running the following command:
+The chrome.json can be produced by running the following command:
 ```
 perl parse.pl example/bin/pulp_api_example example/traces/trace_core_0*.log > chrome.json
 ```
