@@ -31,4 +31,8 @@ The tracer embedded in Google Chrome (`chrome://tracing`) is not able to open ve
 Empirically we saw that up to ~500k events can be managed. Things that can help:
  - Gzipping the trace
  - Slicing the JSON trace in https://github.com/facebook/buck/blob/d609be052ddd49a746e185fadf6df08cc19af6d2/scripts/slice_trace.py
+ - Try switching to Catapult Trace-Viewer: https://chromium.googlesource.com/catapult/+/HEAD/tracing/README.md. It will compile the json trace to a HTML page (still requires a chromium-based browser to open it).
+   ```
+   $CATAPULT/tracing/bin/trace2html my_trace.json --output=my_trace.html && open my_trace.html
+   ```
  - Using another visualizer?
