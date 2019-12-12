@@ -5,7 +5,7 @@
 **Usage:**
 ```perl ./parse.pl [-i] [-p] <binary> <trace file 1> ... <trace file n>```
 
-The trace files are expected to be the ones produced by RI5CY cores.
+The trace files are expected to be the ones produced by RI5CY cores in RTL simulation (default) or GVSOC virtual platform (with `-g` flag).
 
 **Output:** JSON that can be loaded into chrome tracing (about://tracing from chrome or chromium)
 
@@ -13,6 +13,7 @@ The trace files are expected to be the ones produced by RI5CY cores.
   - ```-i```: inlines instructions. Even if a function is inlined, it is still possible to see the inlined function. By default we show
  the origin function name, even if it inlined. If this option is specified the instructions are shown as belonging to the inlining function.
   - ```-p```: labels the instruction with the PC instead of the instruction type. 
+  - ```-g```: parses traces produced by GVSOC running with `--trace=/sys--trace=/sys/board/chip/cluster/pe0:pe0.log` (or similar for other cores).
 
 **Example:**
 The example/ folder contains: 
@@ -24,3 +25,10 @@ The chrome.json can be produced by running the following command:
 ```
 perl parse.pl example/bin/pulp_api_example example/traces/trace_core_0*.log > chrome.json
 ```
+
+**Known Limitations:**
+The tracer embedded in Google Chrome (`chrome://tracing`) is not able to open very large traces.
+Empirically we saw that up to ~500k events can be managed. Things that can help:
+ - Gzipping the trace
+ - Slicing the JSON trace in https://github.com/facebook/buck/blob/d609be052ddd49a746e185fadf6df08cc19af6d2/scripts/slice_trace.py
+ - Using another visualizer?

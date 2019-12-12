@@ -6,6 +6,7 @@ sub flush_buffer {
     my $last_time = $_[4];
     my $inline = $_[5];
     my $use_pc_as_label = $_[6];
+    my $gvsoc = $_[7];
 
     my $linenum = $buffer =~ tr/\n//;
 
@@ -39,7 +40,11 @@ sub flush_buffer {
         if ($a2l_line =~ /^(0x[0-9a-f]+)(.*)/ and $buffer =~ /.*\n.*\n.*/) {
             #print "ADDR: $1 $2\n";
 
-            my ($time, $cycles, $pc, $instr, $args, $rest, $next_cycles) = $buffer =~ /^\s*([0-9]+):\s+([0-9]+):\s+\[\e\[[0-9;]*m[^ ]*\s*\e\[[0-9;]*m\]\s+[^ ]+\s+M\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s*[0-9]+:\s+([0-9]+):.*/;
+            my $regex = qr/^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s+[0-9]+\s+([0-9]+).*/;
+            if($gvsoc == 1) {
+                $regex = qr/^\s*([0-9]+):\s+([0-9]+):\s+\[\e\[[0-9;]*m[^ ]*\s*\e\[[0-9;]*m\]\s+[^ ]+\s+M\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s*[0-9]+:\s+([0-9]+):.*/;
+            }
+            my ($time, $cycles, $pc, $instr, $args, $rest, $next_cycles) = $buffer =~ $regex;
     
             #remove current line from the buffer
             $buffer =~ s/^[^\n]*\n//s;
@@ -80,6 +85,8 @@ sub convert_file {
     my $binfile = $_[1];
     my $inline = $_[2];
     my $use_pc_as_label = $_[3];
+    my $gvsoc = $_[4];
+
 
     open my $info, $file or die "Could not open $file: $!";
     my $last_time = 0;
@@ -89,7 +96,11 @@ sub convert_file {
 
     while(my $line = <$info>) {
 
-        if  ($line =~ /^\s*([0-9]+):\s+([0-9]+):\s+\[\e\[[0-9;]*m[^ ]*\s*\e\[[0-9;]*m\]\s+[^ ]+\s+M\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  ))(.*)/) {
+        my $regex = qr/^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  )).*/;
+        if($gvsoc == 1) {
+            $regex = qr/^\s*([0-9]+):\s+([0-9]+):\s+\[\e\[[0-9;]*m[^ ]*\s*\e\[[0-9;]*m\]\s+[^ ]+\s+M\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  ))(.*)/;
+        }
+        if  ($line =~ $regex) {
             $buffer = "$buffer$line"; 
             $pcs = "$pcs $3";
             $count++;
@@ -97,7 +108,7 @@ sub convert_file {
             if ($count==1000){
                 #print "flushing buffer\n";
                 #print "$buffer";
-                $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label);
+                $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label, $gvsoc);
 #                print $last_time;
                 #print "completed\n";
                 $buffer="$line";
@@ -109,7 +120,7 @@ sub convert_file {
 
     #in case we didn't reach the flushing threshold
     #print "flushing buffer (last) Buffer:\n$buffer\n";
-    $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label);
+    $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label, $gvsoc);
     #print "completed\n";
     close $info;
     return $last_time;
@@ -124,6 +135,7 @@ my $arg_index = 0;
 
 my $inline = 0;
 my $use_pc_as_label = 0;
+my $gvsoc = 0;
 if ($ARGV[$arg_index] eq "-i") {
     $inline = 1;
     $arg_index++;
@@ -136,6 +148,12 @@ if ($ARGV[$arg_index] eq "-p") {
     shift;
 }
 
+if ($ARGV[$arg_index] eq "-g") {
+    $gvsoc=1;
+    $arg_index++;
+    shift;
+}
+
 my $binfile=shift; #$ARGV[$arg_index++];
 
 #print "$arg_index $inline $binfile\n";
@@ -144,7 +162,7 @@ print "{\"traceEvents\": [\n";
 
 my $last_time=0;
 foreach my $file (@ARGV) {
-    $last_time = convert_file($file, $binfile, $inline, $use_pc_as_label);
+    $last_time = convert_file($file, $binfile, $inline, $use_pc_as_label, $gvsoc);
 }
 
 
