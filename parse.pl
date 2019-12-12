@@ -39,7 +39,7 @@ sub flush_buffer {
         if ($a2l_line =~ /^(0x[0-9a-f]+)(.*)/ and $buffer =~ /.*\n.*\n.*/) {
             #print "ADDR: $1 $2\n";
 
-            my ($time, $cycles, $pc, $instr, $args, $rest, $next_cycles) = $buffer =~ /^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s+[0-9]+\s+([0-9]+).*/;
+            my ($time, $cycles, $pc, $instr, $args, $rest, $next_cycles) = $buffer =~ /^\s*([0-9]+):\s+([0-9]+):\s+\[\e\[[0-9;]*m[^ ]*\s*\e\[[0-9;]*m\]\s+[^ ]+\s+M\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s*[0-9]+:\s+([0-9]+):.*/;
     
             #remove current line from the buffer
             $buffer =~ s/^[^\n]*\n//s;
@@ -89,7 +89,7 @@ sub convert_file {
 
     while(my $line = <$info>) {
 
-        if  ($line =~ /^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  )).*/) {
+        if  ($line =~ /^\s*([0-9]+):\s+([0-9]+):\s+\[\e\[[0-9;]*m[^ ]*\s*\e\[[0-9;]*m\]\s+[^ ]+\s+M\s+([0-9a-f]+)\s+([^ ]+)\s+(.+?(?=  ))(.*)/) {
             $buffer = "$buffer$line"; 
             $pcs = "$pcs $3";
             $count++;
@@ -98,6 +98,7 @@ sub convert_file {
                 #print "flushing buffer\n";
                 #print "$buffer";
                 $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label);
+#                print $last_time;
                 #print "completed\n";
                 $buffer="$line";
                 $pcs="$3";
