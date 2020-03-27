@@ -6,6 +6,7 @@ sub flush_buffer {
     my $last_time = $_[4];
     my $inline = $_[5];
     my $use_pc_as_label = $_[6];
+    my $format = $_[7];
 
     my $linenum = $buffer =~ tr/\n//;
 
@@ -39,28 +40,46 @@ sub flush_buffer {
         if ($a2l_line =~ /^(0x[0-9a-f]+)(.*)/ and $buffer =~ /.*\n.*\n.*/) {
             #print "ADDR: $1 $2\n";
 
-            my ($time, $cycles, $pc, $instr, $args, $rest, $next_cycles) = $buffer =~ /^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s+[0-9]+\s+([0-9]+).*/;
-    
+            #my ($time, $cycles, $pc, $instr, $args, $rest, $next_time, $next_cycles) = $buffer =~ /^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)\s+(.+?(?=  ))(.*)\n\s+([0-9]+)\s+([0-9]+).*/;
+ 
+   
+            my ($time, $cycles, $pc, $instr, $args) = $buffer =~ /^\s+([0-9]+)\s+([0-9]+)\s+([0-9a-f]+)\s+[0-9a-f]+\s+([^ ]+)(.*)?\n/;
             #remove current line from the buffer
             $buffer =~ s/^[^\n]*\n//s;
+
+            my ($next_time, $next_cycles) = $buffer =~ /^\s+([0-9]+)\s+([0-9]+).*/;
 
             #print "$time - $cycles - $pc - $instr - $args\n";
             my $funcname = $a2l_first_last_lines[$a2l_line_index];
             my $coords = $a2i_first_last_lines[$a2l_line_index];
-            my $duration = ($next_cycles - $cycles);
-            my $start_time = $cycles;
-            
+            my $duration_cycles = ($next_cycles - $cycles);
+            my $duration_time = ($next_time - $time);            
+
+            my $duration = $duration_time;
+            my $start_time = $time;
+
+            #my $start_time = $cycles;
+            #my $duration = $duration_cycles;           
+
             my $label = $instr;
             if ($use_pc_as_label) { $label = "$pc - $instr"; }
 
-            print "{\"name\": \"$label\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{\"pc\": \"$pc\", \"instr\": \"$instr $args $rest\", \"time\": \"$cycles\", \"Origin\": \"$coords\"}},\n";
 
+            if ($format eq "json") {
+                print "{\"name\": \"$label\", \"cat\": \"$instr\", \"ph\": \"X\", \"ts\": $start_time, \"dur\": $duration, \"pid\": \"$key\", \"tid\": \"$funcname\", \"args\":{\"pc\": \"$pc\", \"instr\": \"$instr $args\", \"time\": \"$cycles\", \"Origin\": \"$coords\"}},\n";
+            } else {
+                $coords =~ s/^(.*\/)+([^ ]*).*/$2/s;
+                $instr =~ s/ +/ /;
+                $args =~ s/ +/ /;
+                $key =~ s/.*core_([0-9]+)_([0-9]+).*/$1 $2/s;
+                print "$start_time $cycles $duration $key $funcname $pc $coords \"$instr $args\"\n"   
+            }
         
             $a2l_first_last_lines[0] = "";
             $a2l_first_last_lines[1] = "";
             $a2i_first_last_lines[0] = "";
             $a2i_first_last_lines[1] = "";
-            $last_time = $cycles;
+            $last_time = $start_time;
 
         } elsif ($a2l_line =~ /^[^\/].*/) {
             if ($a2l_first_last_lines[0] eq "") { $a2l_first_last_lines[0] = $a2l_line; }
@@ -80,6 +99,7 @@ sub convert_file {
     my $binfile = $_[1];
     my $inline = $_[2];
     my $use_pc_as_label = $_[3];
+    my $format = $_[4];
 
     open my $info, $file or die "Could not open $file: $!";
     my $last_time = 0;
@@ -97,7 +117,7 @@ sub convert_file {
             if ($count==1000){
                 #print "flushing buffer\n";
                 #print "$buffer";
-                $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label);
+                $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label, $format);
                 #print "completed\n";
                 $buffer="$line";
                 $pcs="$3";
@@ -108,30 +128,38 @@ sub convert_file {
 
     #in case we didn't reach the flushing threshold
     #print "flushing buffer (last) Buffer:\n$buffer\n";
-    $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label);
+    $last_time = flush_buffer($file, $buffer, $pcs, $binfile, $last_time, $inline, $use_pc_as_label, $format);
     #print "completed\n";
     close $info;
     return $last_time;
 }
 
 if ($#ARGV < 1) {
-    print "Usage: $0 [-i] <bin_file> <trace_file_1> .. <trace_file_n>\n";
+    print "Usage: $0 [-i] [-t] <bin_file> <trace_file_1> .. <trace_file_n>\n";
     exit;
 }
 
 my $arg_index = 0;
 
 my $inline = 0;
+my $format = "json";
 my $use_pc_as_label = 0;
+
 if ($ARGV[$arg_index] eq "-i") {
     $inline = 1;
-    $arg_index++;
+    #$arg_index++;
     shift;
 }
 
 if ($ARGV[$arg_index] eq "-p") {
     $use_pc_as_label=1;
-    $arg_index++;
+    #$arg_index++;
+    shift;
+}
+
+if ($ARGV[$arg_index] eq "-t") {
+    $format="txt";
+    #$arg_index++;
     shift;
 }
 
@@ -143,7 +171,7 @@ print "{\"traceEvents\": [\n";
 
 my $last_time=0;
 foreach my $file (@ARGV) {
-    $last_time = convert_file($file, $binfile, $inline, $use_pc_as_label);
+    $last_time = convert_file($file, $binfile, $inline, $use_pc_as_label, $format);
 }
 
 
