@@ -77,7 +77,7 @@ sub flush_buffer {
                 $instr =~ s/ +/ /;
                 $args =~ s/ +/ /;
                 $key =~ s/.*core_([0-9]+)_([0-9]+).*/$1 $2/s;
-                print "$start_time $cycles $duration $key $funcname $pc $coords \"$instr $args\"\n"   
+                print "$start_time $cycles $duration $key $funcname $pc $coords $instr \"$instr $args\"\n"   
             }
         
             $a2l_first_last_lines[0] = "";
