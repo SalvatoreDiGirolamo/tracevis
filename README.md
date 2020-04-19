@@ -14,6 +14,7 @@ The trace files are expected to be the ones produced by RI5CY cores in RTL simul
  the origin function name, even if it inlined. If this option is specified the instructions are shown as belonging to the inlining function.
   - ```-p```: labels the instruction with the PC instead of the instruction type. 
   - ```-g```: parses traces produced by GVSOC running with `--trace=/sys--trace=/sys/board/chip/cluster/pe0:pe0.log` (or similar for other cores).
+  - ```-t```: produces an enriched plain-text trace. 
 
 **Example:**
 The example/ folder contains: 
