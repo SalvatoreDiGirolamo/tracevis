@@ -3,7 +3,7 @@
 **Requires:**  perl >= v5.26; addr2line >= 2.30. Could work with lower versions too, but it is not tested.
 
 **Usage:**
-```perl ./parse.pl [-i] [-p] <binary> <trace file 1> ... <trace file n>```
+```perl ./parse.pl [-i] [-p] [-t] <binary> <trace file 1> ... <trace file n>```
 
 The trace files are expected to be the ones produced by RI5CY cores in RTL simulation (default) or GVSOC virtual platform (with `-g` flag).
 
